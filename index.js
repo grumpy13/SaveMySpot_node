@@ -69,12 +69,29 @@ io.on("connection", function(socket) {
       .catch(err => console.error(err));
   });
 
-  socket.on("leave q", function(data) {
+  socket.on("leave q", data => {
     axios
-      .delete("http://127.0.0.1:8000/queue/delete/" + data.id + "/")
-      .then(res => {
-        io.to(res.data.id).emit("update queue");
+      .delete(`http://127.0.0.1:8000/queue/delete/${data.id}/`)
+      .then(res => res.data)
+      .then(restaurant => {
+        io.to(restaurant.id).emit("restaurantQ", restaurant.queue);
+        io.to(restaurant.id).emit("update queue");
       })
       .catch(err => console.error(err));
   });
+
+  socket.on("restaurant request", data => {
+    getMyQ(socket, data);
+  });
 });
+
+function getMyQ(socket, restaurantID) {
+  axios
+    .get(`http://127.0.0.1:8000/restaurant/detail/${restaurantID}/`)
+    .then(res => res.data)
+    .then(restaurant => {
+      socket.join(restaurant.id);
+      io.to(socket.id).emit("restaurantQ", restaurant);
+    })
+    .catch(err => console.error(err));
+}
